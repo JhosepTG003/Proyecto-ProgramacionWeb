@@ -1,0 +1,136 @@
+<h2 class="mb-3"><i class="bi bi-scissors me-2 text-primary"></i>Registrar prenda</h2>
+
+<div class="alert alert-warning d-flex align-items-center gap-2" [hidden]="tienda.rol() === 'artesano'">
+  <i class="bi bi-info-circle"></i>
+  Inicia sesión como artesano para registrar prendas y agregar fibras.
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card card-maki shadow-sm">
+      <div class="card-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nombre de la prenda</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ej: Chalina de alpaca"
+            [formField]="formulario.nombre"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Tipo de fibra</label>
+          <select class="form-select" (change)="elegirFibra($any($event.target).value)">
+            @for (f of tienda.fibras(); track f) {
+              <option [value]="f" [selected]="!agregandoFibra() && f === modelo().fibra">
+                {{ f }}
+              </option>
+            }
+            <option [value]="OPCION_NUEVA" [selected]="agregandoFibra()">
+              + Agregar nueva fibra…
+            </option>
+          </select>
+
+          @if (agregandoFibra()) {
+            <div class="panel-fibra mt-2 p-3 rounded-3">
+              <label class="form-label small fw-semibold mb-1">Nombre de la nueva fibra</label>
+              <div class="input-group has-validation">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej: Vicuña, Algodón nativo"
+                  maxlength="30"
+                  [value]="fibraNueva()"
+                  [class.is-invalid]="errorFibra() !== ''"
+                  (input)="fibraNueva.set($any($event.target).value)"
+                  (keydown.enter)="guardarFibra()"
+                />
+                <button class="btn btn-success" type="button" (click)="guardarFibra()">
+                  <i class="bi bi-plus-lg"></i> Agregar
+                </button>
+                <button class="btn btn-outline-secondary" type="button" (click)="cancelarFibra()">
+                  Cancelar
+                </button>
+                <div class="invalid-feedback">{{ errorFibra() }}</div>
+              </div>
+              <div class="form-text">
+                Se añadirá a esta lista y a los filtros del catálogo.
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Tinte utilizado</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ej: Cochinilla"
+            [formField]="formulario.tinte"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Precio base (USD)</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" [formField]="formulario.precio" />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Fotografía</label>
+          <input type="file" class="form-control" accept="image/*" />
+        </div>
+
+        <button class="btn btn-success w-100 btn-lg" (click)="registrar()">
+          <i class="bi bi-check2-circle me-1"></i> Registrar prenda
+        </button>
+
+        <div
+          class="alert mt-3 mb-0 py-2"
+          [class.alert-danger]="esError()"
+          [class.alert-success]="!esError()"
+          [hidden]="mensaje() === ''"
+        >
+          {{ mensaje() }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card card-maki shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-clipboard-data me-2"></i>Resumen</h5>
+        <p class="mb-1">
+          Tu ID de artesano:
+          <span class="badge text-bg-dark">{{ tienda.idArtesano() === "" ? "-" : tienda.idArtesano() }}</span>
+        </p>
+        <p class="mb-1">
+          Prendas registradas: <b>{{ tienda.prendasRegistradas() }}</b>
+        </p>
+        <p class="mb-1">
+          Última prenda:
+          <b>{{ tienda.ultimaPrenda() === "" ? "Ninguna" : tienda.ultimaPrenda() }}</b>
+        </p>
+        <p class="mb-0">
+          Código QR asignado:
+          <b>{{ tienda.ultimoQR() === "" ? "-" : tienda.ultimoQR() }}</b>
+        </p>
+      </div>
+    </div>
+
+    <div class="card card-maki shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-tags me-2"></i>Fibras disponibles</h5>
+        <div class="d-flex flex-wrap gap-2">
+          @for (f of tienda.fibras(); track f) {
+            <span class="badge rounded-pill badge-fibra">{{ f }}</span>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

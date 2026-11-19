@@ -1,0 +1,133 @@
+/* ===== Maki Core · tema andino ===== */
+:root {
+  --maki-rojo: #9c2f2f;
+  --maki-rojo-oscuro: #7d2326;
+  --maki-ocre: #e0a458;
+  --maki-tierra: #2b1d16;
+  --maki-crema: #faf5ee;
+  --bs-body-font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bs-body-bg: var(--maki-crema);
+  --bs-body-color: #3a2f2a;
+}
+
+body { background: var(--maki-crema); }
+
+h1, h2, h3, h4, h5, .navbar-brand, .precio {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+/* Botón y texto "primary" en rojo andino */
+.btn-primary {
+  --bs-btn-bg: var(--maki-rojo);
+  --bs-btn-border-color: var(--maki-rojo);
+  --bs-btn-hover-bg: var(--maki-rojo-oscuro);
+  --bs-btn-hover-border-color: var(--maki-rojo-oscuro);
+  --bs-btn-active-bg: #671c1f;
+  --bs-btn-active-border-color: #671c1f;
+  --bs-btn-disabled-bg: var(--maki-rojo);
+  --bs-btn-disabled-border-color: var(--maki-rojo);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--maki-rojo);
+  --bs-btn-border-color: var(--maki-rojo);
+  --bs-btn-hover-bg: var(--maki-rojo);
+  --bs-btn-hover-border-color: var(--maki-rojo);
+  --bs-btn-active-bg: var(--maki-rojo);
+  --bs-btn-active-border-color: var(--maki-rojo);
+}
+.text-primary { color: var(--maki-rojo) !important; }
+.form-control:focus, .form-select:focus {
+  border-color: var(--maki-ocre);
+  box-shadow: 0 0 0 .25rem rgba(224, 164, 88, .3);
+}
+
+/* Barra de navegación */
+.navbar-maki {
+  background: linear-gradient(90deg, #2b1d16, #4a2a22);
+  border-bottom: 4px solid transparent;
+  border-image: repeating-linear-gradient(90deg, #9c2f2f 0 14px, #e0a458 14px 28px, #2f6f6a 28px 42px) 1;
+}
+.nav-btn { color: #f3e6d8; border: 0; }
+.nav-btn:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+.nav-btn.active { background: var(--maki-ocre); color: var(--maki-tierra); font-weight: 600; }
+.sesion-pill { font-weight: 500; padding: .5em .9em; }
+
+/* Tarjetas */
+.card-maki { border: 0; border-radius: 1rem; overflow: hidden; }
+.card-prenda { transition: transform .2s ease, box-shadow .2s ease; }
+.card-prenda:hover { transform: translateY(-4px); box-shadow: 0 .8rem 1.6rem rgba(43, 29, 22, .15) !important; }
+
+.prenda-cabecera {
+  --fibra: #9c2f2f;
+  position: relative;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, .85);
+  font-size: 2.2rem;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .06) 0 10px, transparent 10px 20px),
+    linear-gradient(135deg, var(--fibra), color-mix(in srgb, var(--fibra) 55%, black));
+}
+.prenda-fibra {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  max-width: 70%;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-family: var(--bs-body-font-family);
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--maki-tierra);
+  background: rgba(255, 255, 255, .88);
+}
+.precio { font-size: 1.5rem; font-weight: 700; color: #2f6f4a; }
+
+/* Portada del catálogo */
+.hero {
+  padding: 2.5rem 1rem;
+  border-radius: 1.25rem;
+  color: #fff;
+  background:
+    linear-gradient(rgba(43, 29, 22, .78), rgba(125, 35, 38, .78)),
+    repeating-linear-gradient(135deg, #4a2a22 0 16px, #5a3328 16px 32px);
+}
+.hero-eyebrow {
+  display: inline-block;
+  margin-bottom: .5rem;
+  font-size: .8rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--maki-ocre);
+}
+
+/* Login */
+.icono-circulo {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font-size: 1.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--maki-rojo), var(--maki-ocre));
+}
+
+/* Artesano */
+.panel-fibra { background: #fff7ea; border: 1px dashed var(--maki-ocre); }
+.badge-fibra { background: #f1e3d0; color: var(--maki-tierra); font-weight: 500; padding: .55em .9em; }
+
+/* Carrito */
+.resumen-sticky { position: sticky; top: 5.5rem; }
+.division-venta { background: #f6efe6; }
+
+/* Aviso emergente */
+.toast-maki { animation: entrada .25s ease; }
+@keyframes entrada {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
