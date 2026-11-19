@@ -1,0 +1,65 @@
+<header class="hero text-center mb-4">
+  <span class="hero-eyebrow">Hecho a mano · Valle del Mantaro</span>
+  <h1 class="display-5 fw-bold mb-2">Catálogo</h1>
+  <p class="lead mb-0">Conectando el Valle del Mantaro con el mundo</p>
+</header>
+
+<div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+  @for (f of fibras(); track f) {
+    <button
+      class="btn btn-sm rounded-pill px-3"
+      [class.btn-primary]="filtro() === f"
+      [class.btn-outline-primary]="filtro() !== f"
+      (click)="cambiarFiltro(f)"
+    >
+      {{ f }}
+      <span class="badge rounded-pill ms-1" [class.text-bg-light]="filtro() === f" [class.text-bg-secondary]="filtro() !== f">{{
+        contar(f)
+      }}</span>
+    </button>
+  }
+</div>
+
+<p class="text-center text-muted small mb-4">
+  Mostrando <b>{{ prendasFiltradas().length }}</b>
+  {{ prendasFiltradas().length === 1 ? "prenda" : "prendas" }}
+  @if (filtro() !== "Todas") {
+    de fibra <b>{{ filtro() }}</b>
+  }
+</p>
+
+<div class="row g-4">
+  @for (p of prendasFiltradas(); track p.id) {
+    <div class="col-md-6 col-lg-4">
+      <div class="card card-maki card-prenda h-100 shadow-sm">
+        <div class="prenda-cabecera" [style.--fibra]="colorFibra(p.fibra)">
+          <i class="bi bi-flower1"></i>
+          <span class="badge text-bg-light prenda-fibra">{{ p.fibra }}</span>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ p.nombre }}</h5>
+          <p class="card-text text-muted small mb-1">
+            <i class="bi bi-person-workspace me-1"></i>{{ p.artesano }}
+          </p>
+          <p class="card-text text-muted small mb-3">
+            <i class="bi bi-droplet-half me-1"></i>{{ p.tinte }}
+          </p>
+          <div class="mt-auto d-flex justify-content-between align-items-center">
+            <span class="precio">
+              {{ tienda.simbolo() }}{{ tienda.precioMostrado(p).toFixed(2) }}
+              <small class="text-muted fs-6">{{ tienda.moneda() }}</small>
+            </span>
+            <button class="btn btn-dark" (click)="tienda.agregar(p.id)">
+              <i class="bi bi-bag-plus me-1"></i> Añadir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @empty {
+    <div class="col-12 text-center text-muted py-5">
+      <i class="bi bi-inbox display-4 d-block mb-2"></i>
+      Aún no hay prendas con esta fibra.
+    </div>
+  }
+</div>
