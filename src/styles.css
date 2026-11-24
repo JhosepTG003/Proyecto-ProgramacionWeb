@@ -70,6 +70,8 @@ h1, h2, h3, h4, h5, .navbar-brand, .precio {
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .06) 0 10px, transparent 10px 20px),
     linear-gradient(135deg, var(--fibra), color-mix(in srgb, var(--fibra) 55%, black));
 }
+.prenda-cabecera.con-foto { height: 190px; background: #e9dccb; }
+.prenda-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .prenda-fibra {
   position: absolute;
   top: .5rem;
@@ -120,6 +122,8 @@ h1, h2, h3, h4, h5, .navbar-brand, .precio {
 /* Artesano */
 .panel-fibra { background: #fff7ea; border: 1px dashed var(--maki-ocre); }
 .badge-fibra { background: #f1e3d0; color: var(--maki-tierra); font-weight: 500; padding: .55em .9em; }
+
+.vista-previa { display: block; max-width: 100%; max-height: 180px; border-radius: .75rem; object-fit: cover; }
 
 /* Carrito */
 .resumen-sticky { position: sticky; top: 5.5rem; }

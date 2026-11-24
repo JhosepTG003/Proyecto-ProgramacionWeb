@@ -1,5 +1,7 @@
 import { Component, inject, signal } from "@angular/core";
 import { FormField, form, required, validate } from "@angular/forms/signals";
+import { MAX_FOTO_BYTES, MAX_PRECIO_USD, TIPOS_FOTO } from "../configuracion";
+import { usdACentavos } from "../dinero";
 import { TiendaService } from "../tienda.service";
 
 const FORMULARIO_VACIO = { nombre: "", fibra: "Alpaca", tinte: "", precio: 0 };
@@ -20,13 +22,48 @@ export class ArtesanoComponent {
   formulario = form(this.modelo, (c) => {
     required(c.nombre);
     required(c.tinte);
-    validate(c.precio, ({ value }) =>
-      value() > 0 ? null : { kind: "precio", message: "El precio debe ser mayor a 0." },
-    );
+    validate(c.precio, ({ value }) => {
+      const precio = value();
+      if (!(precio > 0)) return { kind: "precio", message: "El precio debe ser mayor a 0." };
+      if (precio > MAX_PRECIO_USD) {
+        return { kind: "precio", message: "El precio máximo es $" + MAX_PRECIO_USD + "." };
+      }
+      return null;
+    });
   });
 
   mensaje = signal("");
   esError = signal(false);
+
+  // ---------- Fotografía (opcional) ----------
+  // Se guarda como data URL en memoria. Con backend se subiría a un servidor de archivos.
+  foto = signal("");
+  errorFoto = signal("");
+  readonly tiposFoto = TIPOS_FOTO.join(",");
+
+  elegirFoto(evento: Event) {
+    const campo = evento.target as HTMLInputElement;
+    const archivo = campo.files?.[0];
+    this.foto.set("");
+    this.errorFoto.set("");
+    if (!archivo) return;
+
+    if (!(TIPOS_FOTO as readonly string[]).includes(archivo.type)) {
+      this.errorFoto.set("Usa una imagen JPG, PNG o WebP.");
+      campo.value = "";
+      return;
+    }
+    if (archivo.size > MAX_FOTO_BYTES) {
+      this.errorFoto.set("La imagen pesa más de " + MAX_FOTO_BYTES / (1024 * 1024) + " MB.");
+      campo.value = "";
+      return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = () => this.foto.set(typeof lector.result === "string" ? lector.result : "");
+    lector.onerror = () => this.errorFoto.set("No se pudo leer la imagen.");
+    lector.readAsDataURL(archivo);
+  }
 
   // ---------- Nueva fibra ----------
   agregandoFibra = signal(false);
@@ -73,7 +110,7 @@ export class ArtesanoComponent {
   }
 
   // ---------- Registro de prenda ----------
-  registrar() {
+  registrar(campoFoto?: HTMLInputElement) {
     this.esError.set(true);
 
     if (this.tienda.rol() !== "artesano") {
@@ -82,6 +119,11 @@ export class ArtesanoComponent {
     }
     if (this.agregandoFibra()) {
       this.mensaje.set("Termina de agregar la nueva fibra o cancela para continuar.");
+      return;
+    }
+
+    if (this.errorFoto() !== "") {
+      this.mensaje.set("Corrige la fotografía o quítala para continuar.");
       return;
     }
 
@@ -96,15 +138,19 @@ export class ArtesanoComponent {
     // La prenda entra al catálogo (TiendaService.prendas) y se muestra de inmediato.
     this.tienda.registrarPrenda({
       nombre,
-      artesano: this.tienda.usuario(),
+      artesano: this.tienda.nombreArtesano(), // nombre público, no el correo
       artesanoId: this.tienda.idArtesano(),
       fibra: datos.fibra,
       tinte,
-      precioUSD: datos.precio,
+      precioCentavosUSD: usdACentavos(datos.precio),
+      foto: this.foto() || undefined,
     });
 
     this.esError.set(false);
     this.mensaje.set("Prenda registrada correctamente. Ya aparece en el catálogo.");
     this.formulario().reset({ ...FORMULARIO_VACIO });
+    this.foto.set("");
+    this.errorFoto.set("");
+    if (campoFoto) campoFoto.value = "";
   }
 }

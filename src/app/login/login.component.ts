@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { FormField, form, minLength, required, validate } from "@angular/forms/signals";
-import { TiendaService } from "../tienda.service";
+import { Rol, TiendaService } from "../tienda.service";
 
 // Errores de tipeo frecuentes -> dominio correcto
 const DOMINIOS_CORREGIDOS: Record<string, string> = {
@@ -102,7 +102,7 @@ export class LoginComponent {
     return campo.touched() && campo.errors().length === 0;
   });
 
-  entrar(rol: string) {
+  entrar(rol: Rol) {
     this.formulario.correo().markAsTouched();
     this.formulario.clave().markAsTouched();
 

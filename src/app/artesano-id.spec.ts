@@ -27,7 +27,16 @@ describe('ID único de artesano', () => {
     expect(t.idArtesano()).toBe('');
     t.cerrarSesion();
     t.iniciarSesion('ana@gmail.com', 'artesano');
-    const p = t.registrarPrenda({ nombre: 'Manta', artesano: t.usuario(), artesanoId: t.idArtesano(), fibra: 'Alpaca', tinte: 'Molle', precioUSD: 50 });
+    const p = t.registrarPrenda({ nombre: 'Manta', artesano: t.nombreArtesano(), artesanoId: t.idArtesano(), fibra: 'Alpaca', tinte: 'Molle', precioCentavosUSD: 5000 });
     expect(p.artesanoId).toBe('ART-0003');
+  });
+
+  it('el nombre público del artesano no expone su correo', () => {
+    const t = TestBed.inject(TiendaService);
+    expect(t.nombreArtesano()).toBe('');
+    t.iniciarSesion('ana@gmail.com', 'artesano');
+    expect(t.nombreArtesano()).toBe('Artesano ART-0003');
+    expect(t.nombreArtesano()).not.toContain('@');
+    expect(t.nombreArtesano()).not.toContain('ana');
   });
 });

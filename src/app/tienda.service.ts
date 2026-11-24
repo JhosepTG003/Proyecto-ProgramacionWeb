@@ -1,7 +1,20 @@
 import { Injectable, computed, signal } from "@angular/core";
 import { form } from "@angular/forms/signals";
+import {
+  MAX_CANTIDAD_POR_PRENDA,
+  TARIFAS_ENVIO_CENTAVOS_USD,
+} from "./configuracion";
+import { convertir, dividirVenta } from "./dinero";
+
+// ---------- Tipos ----------
+// Uniones de texto en vez de string suelto: si alguien escribe "Aprobdo" el compilador lo avisa.
+export type Rol = "comprador" | "artesano";
+export type Moneda = "USD" | "EUR";
+export type Zona = "America" | "Europa" | "Otros";
+export type EstadoPedido = "Sin pedido" | "Aprobado";
 
 // ---------- Modelos ----------
+// Todos los montos son enteros en CENTAVOS (ver configuracion.ts).
 export interface Prenda {
   id: string;
   nombre: string;
@@ -9,31 +22,25 @@ export interface Prenda {
   artesanoId: string; // ID único del artesano (ej. ART-0003)
   fibra: string;
   tinte: string;
-  precioUSD: number; // precio base en USD
+  precioCentavosUSD: number; // precio base en centavos de USD
+  foto?: string; // data URL de la fotografía (opcional)
 }
 
-export interface NuevaPrenda {
-  nombre: string;
-  artesano: string;
-  artesanoId: string;
-  fibra: string;
-  tinte: string;
-  precioUSD: number;
-}
+export type NuevaPrenda = Omit<Prenda, "id">;
 
 export interface LineaCarrito {
   prenda: Prenda;
   cantidad: number;
-  precio: number; // precio unitario en la moneda mostrada
-  subtotal: number;
+  precio: number; // precio unitario en centavos de la moneda mostrada
+  subtotal: number; // en centavos de la moneda mostrada
 }
 
 @Injectable({ providedIn: "root" })
 export class TiendaService {
   // ---------- Sesión (RF002, RF003) ----------
   usuario = signal("");
-  rol = signal("");
-  estaLogueado = signal(false);
+  rol = signal<Rol | null>(null);
+  estaLogueado = computed(() => this.rol() !== null);
 
   // ---------- ID único de artesano ----------
   // Mapa correo -> ID. Si el mismo correo vuelve a entrar recibe siempre el mismo ID.
@@ -42,6 +49,10 @@ export class TiendaService {
     "Taller Palacios Yalico": "ART-0002",
   });
   idArtesano = signal(""); // ID del artesano con sesión iniciada
+
+  // Nombre público del artesano: es lo que ve el catálogo. NUNCA se usa el correo (dato privado).
+  // Provisional: "Artesano ART-0003". Cuando exista un perfil con nombre del taller, sale de ahí.
+  nombreArtesano = computed(() => (this.idArtesano() === "" ? "" : "Artesano " + this.idArtesano()));
 
   // ---------- Catálogo (RF004): lista viva de prendas ----------
   // Cuando un artesano registra una prenda se agrega aquí y el catálogo se actualiza solo.
@@ -53,35 +64,33 @@ export class TiendaService {
       artesanoId: "ART-0001",
       fibra: "Alpaca",
       tinte: "Nogal (Marrón natural)",
-      precioUSD: 150,
+      precioCentavosUSD: 15000,
     },
     {
       id: "chalina-hualhuas",
       nombre: "Chalina Hualhuas",
       artesano: "Taller Palacios Yalico",
       artesanoId: "ART-0002",
-      fibra: "Lana de Ovino",
+      fibra: "Lana ovina",
       tinte: "Cochinilla (Rojo carmín)",
-      precioUSD: 45,
+      precioCentavosUSD: 4500,
     },
   ]);
 
   // ---------- Fibras: lista viva ----------
   // El artesano puede agregar nuevas fibras; el formulario y los filtros del catálogo se actualizan solos.
-  fibras = signal<string[]>(["Alpaca", "Llama", "Lana de Ovino"]);
+  fibras = signal<string[]>(["Alpaca", "Llama", "Lana ovina"]);
 
   // ---------- Aviso emergente (toast) ----------
   aviso = signal("");
   private temporizadorAviso: ReturnType<typeof setTimeout> | undefined;
 
   // ---------- Moneda (RNF010) ----------
-  tasaEUR = 0.92;
-  moneda = signal("USD");
+  moneda = signal<Moneda>("USD");
   simbolo = computed(() => (this.moneda() === "EUR" ? "€" : "$"));
-  factor = computed(() => (this.moneda() === "EUR" ? this.tasaEUR : 1));
 
   // ---------- Envío (RF010): zona manejada con Signal Forms ----------
-  modeloEnvio = signal({ zona: "America" });
+  modeloEnvio = signal<{ zona: Zona }>({ zona: "America" });
   formEnvio = form(this.modeloEnvio);
   zona = computed(() => this.modeloEnvio().zona);
 
@@ -90,12 +99,12 @@ export class TiendaService {
 
   lineas = computed<LineaCarrito[]>(() => {
     const cant = this.cantidades();
-    const factor = this.factor();
+    const moneda = this.moneda();
     return this.prendas()
       .filter((p) => (cant[p.id] ?? 0) > 0)
       .map((p) => {
         const cantidad = cant[p.id];
-        const precio = p.precioUSD * factor;
+        const precio = convertir(p.precioCentavosUSD, moneda);
         return { prenda: p, cantidad, precio, subtotal: cantidad * precio };
       });
   });
@@ -103,23 +112,21 @@ export class TiendaService {
   totalPrendas = computed(() => this.lineas().reduce((n, l) => n + l.cantidad, 0));
   subtotal = computed(() => this.lineas().reduce((s, l) => s + l.subtotal, 0));
 
-  envio = computed(() => {
-    if (this.subtotal() === 0) return 0;
-    // Envío fijo por zona (en USD, luego se convierte)
-    let tarifaUSD = 40;
-    if (this.zona() === "America") tarifaUSD = 25;
-    if (this.zona() === "Europa") tarifaUSD = 30;
-    return tarifaUSD * this.factor();
-  });
+  // Envío fijo por zona (la tarifa está en USD y se convierte a la moneda mostrada).
+  envio = computed(() =>
+    this.subtotal() === 0 ? 0 : convertir(TARIFAS_ENVIO_CENTAVOS_USD[this.zona()], this.moneda()),
+  );
 
   total = computed(() => this.subtotal() + this.envio());
 
   // ---------- División 20/80 (RF021) ----------
-  plataforma = computed(() => this.subtotal() * 0.2);
-  cooperativa = computed(() => this.subtotal() * 0.8);
+  // Se reparte el subtotal; el envío no entra en la división.
+  private division = computed(() => dividirVenta(this.subtotal()));
+  plataforma = computed(() => this.division().plataforma);
+  cooperativa = computed(() => this.division().cooperativa);
 
   // ---------- Pedido ----------
-  estadoPedido = signal("Sin pedido");
+  estadoPedido = signal<EstadoPedido>("Sin pedido");
   mensajePedido = signal("");
 
   // ---------- Artesano (RF004, RF016) ----------
@@ -127,21 +134,40 @@ export class TiendaService {
   ultimaPrenda = signal("");
   ultimoQR = signal("");
 
-  // ---------- Precio mostrado de una prenda en la moneda actual ----------
+  // ---------- Precio mostrado de una prenda en la moneda actual (en centavos) ----------
   precioMostrado(p: Prenda): number {
-    return p.precioUSD * this.factor();
+    return convertir(p.precioCentavosUSD, this.moneda());
+  }
+
+  // Da formato a un monto en centavos con el símbolo de la moneda actual: 7360 -> "€73.60".
+  mostrar(centavos: number): string {
+    return this.simbolo() + (centavos / 100).toFixed(2);
   }
 
   // ---------- Moneda ----------
-  cambiarMoneda(moneda: string) {
+  cambiarMoneda(moneda: Moneda) {
     this.moneda.set(moneda);
   }
 
   // ---------- Carrito ----------
-  agregar(id: string) {
-    this.cantidades.update((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  readonly maxPorPrenda = MAX_CANTIDAD_POR_PRENDA;
+
+  enCarrito(id: string): number {
+    return this.cantidades()[id] ?? 0;
+  }
+
+  // Devuelve true si se añadió. El aviso emergente solo sale cuando conAviso es true
+  // (el catálogo lo usa; los botones "+" del carrito no, porque ya ven el cambio).
+  agregar(id: string, conAviso = true): boolean {
     const prenda = this.prendas().find((p) => p.id === id);
-    if (prenda) this.avisar(prenda.nombre + " se añadió al carrito");
+    if (!prenda) return false;
+    if (this.enCarrito(id) >= this.maxPorPrenda) {
+      this.avisar("Máximo " + this.maxPorPrenda + " unidades de " + prenda.nombre);
+      return false;
+    }
+    this.cantidades.update((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+    if (conAviso) this.avisar(prenda.nombre + " se añadió al carrito");
+    return true;
   }
 
   avisar(texto: string) {
@@ -211,10 +237,9 @@ export class TiendaService {
   }
 
   // ---------- Sesión ----------
-  iniciarSesion(correo: string, rol: string) {
+  iniciarSesion(correo: string, rol: Rol) {
     this.usuario.set(correo);
     this.rol.set(rol);
-    this.estaLogueado.set(true);
     this.idArtesano.set(rol === "artesano" ? this.obtenerIdArtesano(correo) : "");
   }
 
@@ -232,8 +257,7 @@ export class TiendaService {
   cerrarSesion() {
     this.idArtesano.set("");
     this.usuario.set("");
-    this.rol.set("");
-    this.estaLogueado.set(false);
+    this.rol.set(null);
   }
 
   // ---------- Pedido ----------
@@ -242,7 +266,7 @@ export class TiendaService {
       this.mensajePedido.set("El carrito está vacío.");
       return;
     }
-    if (!this.estaLogueado() || this.rol() !== "comprador") {
+    if (this.rol() !== "comprador") {
       this.mensajePedido.set("Debes iniciar sesión como comprador para pagar.");
       return;
     }

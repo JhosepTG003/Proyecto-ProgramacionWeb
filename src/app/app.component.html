@@ -4,37 +4,47 @@
       <i class="bi bi-flower1 text-warning"></i> Maki Core
     </span>
 
-    <div class="d-flex flex-wrap gap-1">
-      <button class="btn btn-sm nav-btn" [class.active]="pagina() === 'catalogo'" (click)="ir('catalogo')">
+    <div class="d-flex flex-wrap gap-1" role="navigation" aria-label="Menú principal">
+      <a class="btn btn-sm nav-btn" routerLink="/catalogo" routerLinkActive="active">
         <i class="bi bi-grid me-1"></i>Catálogo
-      </button>
-      <button class="btn btn-sm nav-btn" [class.active]="pagina() === 'carrito'" (click)="ir('carrito')">
+      </a>
+      <a class="btn btn-sm nav-btn" routerLink="/carrito" routerLinkActive="active">
         <i class="bi bi-bag me-1"></i>Carrito
         <span class="badge rounded-pill bg-warning text-dark">{{ tienda.totalPrendas() }}</span>
-      </button>
+      </a>
       @if (tienda.rol() === "artesano") {
-        <button class="btn btn-sm nav-btn" [class.active]="pagina() === 'artesano'" (click)="ir('artesano')">
+        <a class="btn btn-sm nav-btn" routerLink="/artesano" routerLinkActive="active">
           <i class="bi bi-scissors me-1"></i>Artesano
-        </button>
+        </a>
       }
-      <button class="btn btn-sm nav-btn" [class.active]="pagina() === 'login'" (click)="ir('login')">
-        <i class="bi bi-person-circle me-1"></i>Ingresar
-      </button>
+      @if (tienda.estaLogueado()) {
+        <button type="button" class="btn btn-sm nav-btn" (click)="salir()">
+          <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
+        </button>
+      } @else {
+        <a class="btn btn-sm nav-btn" routerLink="/login" routerLinkActive="active">
+          <i class="bi bi-person-circle me-1"></i>Ingresar
+        </a>
+      }
     </div>
 
     <div class="btn-group btn-group-sm" role="group" aria-label="Moneda">
       <button
+        type="button"
         class="btn"
         [class.btn-warning]="tienda.moneda() === 'USD'"
         [class.btn-outline-warning]="tienda.moneda() !== 'USD'"
+        [attr.aria-pressed]="tienda.moneda() === 'USD'"
         (click)="tienda.cambiarMoneda('USD')"
       >
         USD
       </button>
       <button
+        type="button"
         class="btn"
         [class.btn-warning]="tienda.moneda() === 'EUR'"
         [class.btn-outline-warning]="tienda.moneda() !== 'EUR'"
+        [attr.aria-pressed]="tienda.moneda() === 'EUR'"
         (click)="tienda.cambiarMoneda('EUR')"
       >
         EUR
@@ -56,10 +66,7 @@
     </p>
   }
 
-  <div [hidden]="pagina() !== 'catalogo'"><app-catalogo></app-catalogo></div>
-  <div [hidden]="pagina() !== 'carrito'"><app-carrito></app-carrito></div>
-  <div [hidden]="pagina() !== 'artesano' || tienda.rol() !== 'artesano'"><app-artesano></app-artesano></div>
-  <div [hidden]="pagina() !== 'login'"><app-login></app-login></div>
+  <router-outlet />
 </div>
 
 @if (tienda.aviso() !== "") {
