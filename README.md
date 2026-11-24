@@ -20,7 +20,7 @@ npm run build    # compilación de producción
 | `/catalogo` | Catálogo con filtros por fibra (página inicial)   | Público                     |
 | `/carrito`  | Carrito, zona de envío, total y división 20/80    | Público (pagar: comprador)  |
 | `/login`    | Inicio y cierre de sesión                         | Público                     |
-| `/artesano` | Registro de prendas (con foto) y nuevas fibras    | Solo artesano (`artesanoGuard`) |
+| `/artesano` | Registro de prendas (con foto y stock) y nuevas fibras   | Solo artesano (`artesanoGuard`) |
 
 Las rutas cargan de forma diferida y cualquier ruta desconocida lleva al catálogo.
 
