@@ -35,7 +35,8 @@ describe('Catálogo dinámico', () => {
     await escribir('input[placeholder^="Ej: Chalina"]', 'Manta Huancaína');
     await escribir('input[placeholder^="Ej: Cochinilla"]', 'Molle');
     await escribir('select', 'Llama');
-    await escribir('input[type=number]', '80');
+    await escribir('#prenda-precio', '80');
+    await escribir('#prenda-stock', '1');
 
     (el.querySelector('app-artesano button.btn-lg') as HTMLButtonElement).click();
     await fixture.whenStable();
@@ -46,6 +47,7 @@ describe('Catálogo dinámico', () => {
     expect(catalogo.textContent).toContain('Manta Huancaína');
     expect(catalogo.textContent).toContain('Llama');
     expect(tienda.ultimoQR()).toBe('MAKI-0001');
+    expect(catalogo.textContent).toContain('Últimas 1'); // stock 1 -> aviso de pocas unidades
 
     // El catálogo es público: muestra el nombre del artesano, nunca su correo.
     expect(catalogo.textContent).toContain('Artesano ART-0003');

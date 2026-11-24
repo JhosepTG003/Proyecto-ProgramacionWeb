@@ -44,6 +44,10 @@ src/app/
   `EstadoPedido` son uniones de texto, así que un error de escritura no compila.
 - **El correo del artesano nunca se muestra.** El catálogo usa un nombre público
   (`Artesano ART-0003`), provisional hasta que exista el perfil con nombre del taller.
+- **Stock por prenda.** El artesano indica las unidades al registrar la prenda. El catálogo muestra
+  "Stock", "¡Últimas n!" (3 o menos) o "Agotado" y desactiva "Añadir" cuando no se puede. El carrito
+  nunca pasa del stock (ni de 10 por prenda), y al pagar se revisa el stock y se descuenta.
+  Con el pedido ya pagado el carrito no se edita hasta pulsar "Hacer un nuevo pedido".
 - **Un solo rol por sesión.** Para cambiar de rol hay que cerrar sesión (botón en el menú).
 
 ## Limitaciones del prototipo

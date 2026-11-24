@@ -17,12 +17,15 @@
             <small class="text-muted">
               {{ l.prenda.fibra }} · {{ tienda.mostrar(l.precio) }} c/u
             </small>
+            <br />
+            <small class="text-muted">Stock disponible: {{ l.prenda.stock }}</small>
           </div>
           <div class="btn-group btn-group-sm" role="group">
             <button
               type="button"
               class="btn btn-outline-secondary"
               [attr.aria-label]="'Quitar una unidad de ' + l.prenda.nombre"
+              [disabled]="tienda.estadoPedido() === 'Aprobado'"
               (click)="tienda.quitar(l.prenda.id)"
             >
               <i class="bi bi-dash" aria-hidden="true"></i>
@@ -34,8 +37,8 @@
               type="button"
               class="btn btn-outline-secondary"
               [attr.aria-label]="'Añadir una unidad de ' + l.prenda.nombre"
-              [disabled]="l.cantidad >= tienda.maxPorPrenda"
-              [title]="l.cantidad >= tienda.maxPorPrenda ? 'Máximo ' + tienda.maxPorPrenda + ' por prenda' : ''"
+              [disabled]="!tienda.puedeAgregar(l.prenda.id)"
+              [title]="tienda.motivoNoAgregar(l.prenda.id)"
               (click)="tienda.agregar(l.prenda.id, false)"
             >
               <i class="bi bi-plus" aria-hidden="true"></i>

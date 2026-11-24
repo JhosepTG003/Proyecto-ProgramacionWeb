@@ -23,6 +23,7 @@ export interface Prenda {
   fibra: string;
   tinte: string;
   precioCentavosUSD: number; // precio base en centavos de USD
+  stock: number; // unidades disponibles (entero >= 0)
   foto?: string; // data URL de la fotografía (opcional)
 }
 
@@ -65,6 +66,7 @@ export class TiendaService {
       fibra: "Alpaca",
       tinte: "Nogal (Marrón natural)",
       precioCentavosUSD: 15000,
+      stock: 12,
     },
     {
       id: "chalina-hualhuas",
@@ -74,6 +76,7 @@ export class TiendaService {
       fibra: "Lana ovina",
       tinte: "Cochinilla (Rojo carmín)",
       precioCentavosUSD: 4500,
+      stock: 20,
     },
   ]);
 
@@ -156,13 +159,37 @@ export class TiendaService {
     return this.cantidades()[id] ?? 0;
   }
 
-  // Devuelve true si se añadió. El aviso emergente solo sale cuando conAviso es true
+  // Texto con la razón por la que NO se puede añadir otra unidad; "" si se puede.
+  // Una sola fuente de verdad: la usan agregar(), los botones desactivados y sus tooltips.
+  motivoNoAgregar(id: string): string {
+    const prenda = this.prendas().find((p) => p.id === id);
+    if (!prenda) return "Esa prenda no existe.";
+    if (this.estadoPedido() === "Aprobado") {
+      return "Tu pedido ya fue pagado. Pulsa «Hacer un nuevo pedido» para seguir comprando.";
+    }
+    if (prenda.stock <= 0) return prenda.nombre + " está agotada.";
+    const enCarrito = this.enCarrito(id);
+    if (enCarrito >= prenda.stock) {
+      return "Ya tienes en el carrito todo el stock disponible de " + prenda.nombre + " (" + prenda.stock + ").";
+    }
+    if (enCarrito >= this.maxPorPrenda) {
+      return "Máximo " + this.maxPorPrenda + " unidades de " + prenda.nombre + ".";
+    }
+    return "";
+  }
+
+  puedeAgregar(id: string): boolean {
+    return this.motivoNoAgregar(id) === "";
+  }
+
+  // Devuelve true si se añadió. El aviso emergente de éxito solo sale cuando conAviso es true
   // (el catálogo lo usa; los botones "+" del carrito no, porque ya ven el cambio).
   agregar(id: string, conAviso = true): boolean {
     const prenda = this.prendas().find((p) => p.id === id);
     if (!prenda) return false;
-    if (this.enCarrito(id) >= this.maxPorPrenda) {
-      this.avisar("Máximo " + this.maxPorPrenda + " unidades de " + prenda.nombre);
+    const motivo = this.motivoNoAgregar(id);
+    if (motivo !== "") {
+      this.avisar(motivo);
       return false;
     }
     this.cantidades.update((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
@@ -177,6 +204,7 @@ export class TiendaService {
   }
 
   quitar(id: string) {
+    if (this.estadoPedido() === "Aprobado") return; // el pedido ya pagado no se edita
     this.cantidades.update((c) => {
       const actual = c[id] ?? 0;
       if (actual <= 1) {
@@ -262,6 +290,10 @@ export class TiendaService {
 
   // ---------- Pedido ----------
   pagar() {
+    if (this.estadoPedido() === "Aprobado") {
+      this.mensajePedido.set("Este pedido ya fue pagado.");
+      return;
+    }
     if (this.totalPrendas() === 0) {
       this.mensajePedido.set("El carrito está vacío.");
       return;
@@ -270,6 +302,20 @@ export class TiendaService {
       this.mensajePedido.set("Debes iniciar sesión como comprador para pagar.");
       return;
     }
+    // Revisa el stock de cada línea antes de cobrar (nunca se vende más de lo que hay).
+    for (const l of this.lineas()) {
+      if (l.cantidad > l.prenda.stock) {
+        this.mensajePedido.set(
+          "No hay stock suficiente de " + l.prenda.nombre + " (quedan " + l.prenda.stock + ").",
+        );
+        return;
+      }
+    }
+    // Descuenta del inventario lo que se vendió.
+    const cant = this.cantidades();
+    this.prendas.update((lista) =>
+      lista.map((p) => ((cant[p.id] ?? 0) > 0 ? { ...p, stock: p.stock - cant[p.id] } : p)),
+    );
     this.estadoPedido.set("Aprobado");
     this.mensajePedido.set(
       "Pago aprobado. Se notificó la venta al artesano y se ordenó la transferencia del 80 % a la cooperativa.",

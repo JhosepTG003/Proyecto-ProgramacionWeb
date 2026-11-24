@@ -90,6 +90,18 @@
           </div>
         </div>
 
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="prenda-stock">Stock disponible (unidades)</label>
+          <input
+            id="prenda-stock"
+            type="number"
+            step="1"
+            class="form-control"
+            [formField]="formulario.stock"
+          />
+          <div class="form-text">Cuántas unidades tienes para vender. Baja solo con cada venta.</div>
+        </div>
+
         <div class="mb-4">
           <label class="form-label fw-semibold" for="prenda-foto">Fotografía (opcional)</label>
           <input

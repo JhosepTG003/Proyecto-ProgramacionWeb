@@ -1,10 +1,10 @@
 import { Component, inject, signal } from "@angular/core";
 import { FormField, form, required, validate } from "@angular/forms/signals";
-import { MAX_FOTO_BYTES, MAX_PRECIO_USD, TIPOS_FOTO } from "../configuracion";
+import { MAX_FOTO_BYTES, MAX_PRECIO_USD, MAX_STOCK, TIPOS_FOTO } from "../configuracion";
 import { usdACentavos } from "../dinero";
 import { TiendaService } from "../tienda.service";
 
-const FORMULARIO_VACIO = { nombre: "", fibra: "Alpaca", tinte: "", precio: 0 };
+const FORMULARIO_VACIO = { nombre: "", fibra: "Alpaca", tinte: "", precio: 0, stock: 1 };
 const OPCION_NUEVA = "__nueva__";
 
 @Component({
@@ -27,6 +27,16 @@ export class ArtesanoComponent {
       if (!(precio > 0)) return { kind: "precio", message: "El precio debe ser mayor a 0." };
       if (precio > MAX_PRECIO_USD) {
         return { kind: "precio", message: "El precio máximo es $" + MAX_PRECIO_USD + "." };
+      }
+      return null;
+    });
+    validate(c.stock, ({ value }) => {
+      const stock = value();
+      if (!Number.isInteger(stock) || stock < 1) {
+        return { kind: "stock", message: "El stock debe ser un número entero de 1 o más." };
+      }
+      if (stock > MAX_STOCK) {
+        return { kind: "stock", message: "El stock máximo es " + MAX_STOCK + "." };
       }
       return null;
     });
@@ -143,6 +153,7 @@ export class ArtesanoComponent {
       fibra: datos.fibra,
       tinte,
       precioCentavosUSD: usdACentavos(datos.precio),
+      stock: datos.stock,
       foto: this.foto() || undefined,
     });
 

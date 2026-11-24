@@ -47,24 +47,25 @@ describe('Fotografía de la prenda', () => {
     const { tienda, comp } = montar();
     comp.elegirFoto(evento(new File([PNG_1X1], 'a.png', { type: 'image/png' })));
     await vi.waitFor(() => expect(comp.foto()).not.toBe(''));
-    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 19.99 });
+    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 19.99, stock: 4 });
     comp.registrar();
     const nueva = tienda.prendas().at(-1)!;
     expect(nueva.precioCentavosUSD).toBe(1999);
+    expect(nueva.stock).toBe(4);
     expect(nueva.foto).toMatch(/^data:image\/png/);
     expect(comp.foto()).toBe('');
   });
 
   it('sin foto, la prenda se registra igual', () => {
     const { tienda, comp } = montar();
-    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 10 });
+    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 10, stock: 1 });
     comp.registrar();
     expect(tienda.prendas().at(-1)!.foto).toBeUndefined();
   });
 
   it('rechaza precios fuera de rango', () => {
     const { tienda, comp } = montar();
-    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 1e9 });
+    comp.modelo.set({ nombre: 'Manta', fibra: 'Alpaca', tinte: 'Molle', precio: 1e9, stock: 1 });
     comp.registrar();
     expect(tienda.prendas().length).toBe(2);
     expect(comp.mensaje()).toBe('Completa todos los campos.');

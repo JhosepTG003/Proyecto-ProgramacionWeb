@@ -22,6 +22,9 @@ export const MAX_CANTIDAD_POR_PRENDA = 10;
 /** Precio base máximo que puede registrar un artesano, en USD. */
 export const MAX_PRECIO_USD = 10000;
 
+/** Stock máximo que puede registrar un artesano por prenda. */
+export const MAX_STOCK = 9999;
+
 /** Fotografía de la prenda: formatos admitidos y tamaño máximo. */
 export const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2 MB

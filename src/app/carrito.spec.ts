@@ -93,7 +93,7 @@ describe('División 20/80 (RF021)', () => {
 
   it('no pierde centavos con montos que no se dividen exacto', () => {
     const t = TestBed.inject(TiendaService);
-    t.registrarPrenda({ nombre: 'Prueba', artesano: 'X', artesanoId: 'ART-0009', fibra: 'Alpaca', tinte: 'Molle', precioCentavosUSD: 7 });
+    t.registrarPrenda({ nombre: 'Prueba', artesano: 'X', artesanoId: 'ART-0009', fibra: 'Alpaca', tinte: 'Molle', precioCentavosUSD: 7, stock: 5 });
     t.agregar('MAKI-0001');
     expect(t.subtotal()).toBe(7);
     expect(t.plataforma() + t.cooperativa()).toBe(7);
