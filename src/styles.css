@@ -60,17 +60,35 @@ h1, h2, h3, h4, h5, .navbar-brand, .precio {
 .prenda-cabecera {
   --fibra: #9c2f2f;
   position: relative;
-  height: 120px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, .85);
-  font-size: 3.2rem;
+  font-size: 2.2rem;
   background:
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .06) 0 10px, transparent 10px 20px),
     linear-gradient(135deg, var(--fibra), color-mix(in srgb, var(--fibra) 55%, black));
 }
-.prenda-fibra { position: absolute; top: .7rem; right: .7rem; }
+.prenda-cabecera.con-foto { height: 190px; background: #e9dccb; }
+.prenda-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.prenda-fibra {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  max-width: 70%;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-family: var(--bs-body-font-family);
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--maki-tierra);
+  background: rgba(255, 255, 255, .88);
+}
 .precio { font-size: 1.5rem; font-weight: 700; color: #2f6f4a; }
 
 /* Portada del catálogo */
@@ -104,6 +122,8 @@ h1, h2, h3, h4, h5, .navbar-brand, .precio {
 /* Artesano */
 .panel-fibra { background: #fff7ea; border: 1px dashed var(--maki-ocre); }
 .badge-fibra { background: #f1e3d0; color: var(--maki-tierra); font-weight: 500; padding: .55em .9em; }
+
+.vista-previa { display: block; max-width: 100%; max-height: 180px; border-radius: .75rem; object-fit: cover; }
 
 /* Carrito */
 .resumen-sticky { position: sticky; top: 5.5rem; }

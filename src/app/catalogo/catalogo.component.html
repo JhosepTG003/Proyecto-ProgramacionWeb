@@ -32,25 +32,49 @@
   @for (p of prendasFiltradas(); track p.id) {
     <div class="col-md-6 col-lg-4">
       <div class="card card-maki card-prenda h-100 shadow-sm">
-        <div class="prenda-cabecera" [style.--fibra]="colorFibra(p.fibra)">
-          <i class="bi bi-flower1"></i>
-          <span class="badge text-bg-light prenda-fibra">{{ p.fibra }}</span>
+        <div
+          class="prenda-cabecera"
+          [class.con-foto]="p.foto"
+          [style.--fibra]="colorFibra(p.fibra)"
+        >
+          @if (p.foto) {
+            <img class="prenda-foto" [src]="p.foto" [alt]="p.nombre" />
+          } @else {
+            <i class="bi bi-flower1" aria-hidden="true"></i>
+          }
+          <span class="prenda-fibra">{{ p.fibra }}</span>
         </div>
         <div class="card-body d-flex flex-column">
           <h5 class="card-title">{{ p.nombre }}</h5>
           <p class="card-text text-muted small mb-1">
             <i class="bi bi-person-workspace me-1"></i>{{ p.artesano }}
+            <span class="badge text-bg-secondary ms-1">{{ p.artesanoId }}</span>
           </p>
-          <p class="card-text text-muted small mb-3">
+          <p class="card-text text-muted small mb-2">
             <i class="bi bi-droplet-half me-1"></i>{{ p.tinte }}
+          </p>
+          <p class="card-text small mb-3">
+            @if (p.stock <= 0) {
+              <span class="badge text-bg-danger">Agotado</span>
+            } @else if (p.stock <= 3) {
+              <span class="badge text-bg-warning">¡Últimas {{ p.stock }}!</span>
+            } @else {
+              <span class="text-muted"><i class="bi bi-box-seam me-1"></i>Stock: {{ p.stock }}</span>
+            }
           </p>
           <div class="mt-auto d-flex justify-content-between align-items-center">
             <span class="precio">
-              {{ tienda.simbolo() }}{{ tienda.precioMostrado(p).toFixed(2) }}
+              {{ tienda.mostrar(tienda.precioMostrado(p)) }}
               <small class="text-muted fs-6">{{ tienda.moneda() }}</small>
             </span>
-            <button class="btn btn-dark" (click)="tienda.agregar(p.id)">
-              <i class="bi bi-bag-plus me-1"></i> Añadir
+            <button
+              class="btn btn-dark"
+              type="button"
+              [disabled]="!tienda.puedeAgregar(p.id)"
+              [title]="tienda.motivoNoAgregar(p.id)"
+              (click)="tienda.agregar(p.id)"
+            >
+              <i class="bi bi-bag-plus me-1"></i> {{ p.stock <= 0 ? "Agotado" : "Añadir" }}
             </button>
           </div>
         </div>

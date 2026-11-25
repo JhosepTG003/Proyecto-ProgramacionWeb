@@ -15,19 +15,36 @@
           <div>
             <b>{{ l.prenda.nombre }}</b><br />
             <small class="text-muted">
-              {{ l.prenda.fibra }} · {{ tienda.simbolo() }}{{ l.precio.toFixed(2) }} c/u
+              {{ l.prenda.fibra }} · {{ tienda.mostrar(l.precio) }} c/u
             </small>
+            <br />
+            <small class="text-muted">Stock disponible: {{ l.prenda.stock }}</small>
           </div>
           <div class="btn-group btn-group-sm" role="group">
-            <button class="btn btn-outline-secondary" (click)="tienda.quitar(l.prenda.id)">
-              <i class="bi bi-dash"></i>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [attr.aria-label]="'Quitar una unidad de ' + l.prenda.nombre"
+              [disabled]="tienda.estadoPedido() === 'Aprobado'"
+              (click)="tienda.quitar(l.prenda.id)"
+            >
+              <i class="bi bi-dash" aria-hidden="true"></i>
             </button>
-            <span class="btn btn-light disabled opacity-100 px-3">{{ l.cantidad }}</span>
-            <button class="btn btn-outline-secondary" (click)="tienda.agregar(l.prenda.id)">
-              <i class="bi bi-plus"></i>
+            <span class="btn btn-light disabled opacity-100 px-3" aria-live="polite">{{
+              l.cantidad
+            }}</span>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [attr.aria-label]="'Añadir una unidad de ' + l.prenda.nombre"
+              [disabled]="!tienda.puedeAgregar(l.prenda.id)"
+              [title]="tienda.motivoNoAgregar(l.prenda.id)"
+              (click)="tienda.agregar(l.prenda.id, false)"
+            >
+              <i class="bi bi-plus" aria-hidden="true"></i>
             </button>
           </div>
-          <b class="fs-5">{{ tienda.simbolo() }}{{ l.subtotal.toFixed(2) }}</b>
+          <b class="fs-5">{{ tienda.mostrar(l.subtotal) }}</b>
         </div>
       </div>
     }
@@ -40,8 +57,8 @@
         <h5 class="card-title mb-3">Resumen del pedido</h5>
 
         <div class="mb-3">
-          <label class="form-label fw-semibold">Zona de envío (tarifa fija)</label>
-          <select class="form-select" [formField]="tienda.formEnvio.zona">
+          <label class="form-label fw-semibold" for="zona-envio">Zona de envío (tarifa fija)</label>
+          <select id="zona-envio" class="form-select" [formField]="tienda.formEnvio.zona">
             <option value="America">América</option>
             <option value="Europa">Europa</option>
             <option value="Otros">Otras zonas</option>
@@ -50,17 +67,17 @@
 
         <p class="d-flex justify-content-between mb-1">
           <span>Subtotal</span>
-          <span>{{ tienda.simbolo() }}{{ tienda.subtotal().toFixed(2) }}</span>
+          <span>{{ tienda.mostrar(tienda.subtotal()) }}</span>
         </p>
         <p class="d-flex justify-content-between mb-1">
           <span>Envío</span>
-          <span>{{ tienda.simbolo() }}{{ tienda.envio().toFixed(2) }}</span>
+          <span>{{ tienda.mostrar(tienda.envio()) }}</span>
         </p>
         <hr />
         <h4 class="d-flex justify-content-between">
           <span>Total</span>
           <span class="text-success">
-            {{ tienda.simbolo() }}{{ tienda.total().toFixed(2) }} {{ tienda.moneda() }}
+            {{ tienda.mostrar(tienda.total()) }} {{ tienda.moneda() }}
           </span>
         </h4>
 
@@ -68,15 +85,16 @@
           <p class="small text-muted mb-1">División de la venta</p>
           <p class="small mb-1 d-flex justify-content-between">
             <span>Plataforma (20 %)</span>
-            <span>{{ tienda.simbolo() }}{{ tienda.plataforma().toFixed(2) }}</span>
+            <span>{{ tienda.mostrar(tienda.plataforma()) }}</span>
           </p>
           <p class="small mb-0 d-flex justify-content-between">
             <span>Cooperativa de artesanos (80 %)</span>
-            <span>{{ tienda.simbolo() }}{{ tienda.cooperativa().toFixed(2) }}</span>
+            <span>{{ tienda.mostrar(tienda.cooperativa()) }}</span>
           </p>
         </div>
 
         <button
+          type="button"
           class="btn btn-success btn-lg w-100"
           [disabled]="tienda.estadoPedido() === 'Aprobado'"
           (click)="tienda.pagar()"
@@ -84,6 +102,7 @@
           <i class="bi bi-credit-card me-1"></i> Pagar ahora
         </button>
         <button
+          type="button"
           class="btn btn-outline-secondary w-100 mt-2"
           [hidden]="tienda.estadoPedido() !== 'Aprobado'"
           (click)="tienda.nuevoPedido()"
@@ -100,7 +119,7 @@
             >{{ tienda.estadoPedido() }}</span
           >
         </p>
-        <div class="alert alert-info mb-0 py-2" [hidden]="tienda.mensajePedido() === ''">
+        <div class="alert alert-info mb-0 py-2" role="status" [hidden]="tienda.mensajePedido() === ''">
           {{ tienda.mensajePedido() }}
         </div>
       </div>

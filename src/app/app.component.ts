@@ -1,26 +1,33 @@
-import { Component, signal, inject } from "@angular/core";
+import { Component, inject, effect, untracked } from "@angular/core";
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { TiendaService } from "./tienda.service";
-import { LoginComponent } from "./login/login.component";
-import { CatalogoComponent } from "./catalogo/catalogo.component";
-import { CarritoComponent } from "./carrito/carrito.component";
-import { ArtesanoComponent } from "./artesano/artesano.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [
-    LoginComponent,
-    CatalogoComponent,
-    CarritoComponent,
-    ArtesanoComponent,
-  ],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: "./app.component.html",
 })
 export class AppComponent {
   tienda = inject(TiendaService);
-  pagina = signal("catalogo");
+  private router = inject(Router);
 
-  ir(nombre: string) {
-    this.pagina.set(nombre);
+  salir() {
+    this.tienda.cerrarSesion();
+  }
+
+  constructor() {
+    // Reacciona a los cambios de sesión (rol):
+    //  - entra un artesano  -> lo lleva a su área
+    //  - entra un comprador -> lo lleva al catálogo
+    //  - cierra sesión estando en el área del artesano -> vuelve al catálogo
+    effect(() => {
+      const rol = this.tienda.rol();
+      untracked(() => {
+        if (rol === "artesano") this.router.navigateByUrl("/artesano");
+        else if (rol === "comprador") this.router.navigateByUrl("/catalogo");
+        else if (this.router.url.startsWith("/artesano")) this.router.navigateByUrl("/catalogo");
+      });
+    });
   }
 }
