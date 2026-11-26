@@ -1,14 +1,14 @@
 """Conexion a SQL Server con pyodbc (solo se usa si existe DATABASE_URL).
 
-DATABASE_URL ahora es una cadena de conexion ODBC, por ejemplo:
+DATABASE_URL es una cadena de conexion ODBC, por ejemplo:
   DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost\\SQLEXPRESS;DATABASE=maki;
   Trusted_Connection=yes;TrustServerCertificate=yes;
 
 Cada operacion abre una conexion (pyodbc ya reutiliza conexiones con su pool interno de ODBC) y,
 al salir del bloque `with conexion()`, se confirma (commit) o se deshace (rollback) si hubo un error.
 
-La conexion que se entrega imita lo que antes daba psycopg: execute(sql, params) devuelve un
-cursor con fetchone()/fetchall() que entregan diccionarios, asi los repositorios casi no cambian.
+La conexion entrega execute(sql, params), que devuelve un cursor con fetchone()/fetchall()
+que entregan diccionarios.
 Los parametros de las consultas se escriben con ? (no con %s).
 """
 
@@ -65,7 +65,7 @@ class _Cursor:
 
 
 class _Conexion:
-    """Envuelve una conexion de pyodbc con la misma forma de uso que tenia la de psycopg."""
+    """Envuelve una conexion de pyodbc."""
 
     def __init__(self, conn: pyodbc.Connection) -> None:
         self._conn = conn

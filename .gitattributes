@@ -1,3 +1,2 @@
-# Scripts y SQL siempre con saltos de línea LF: con CRLF fallan dentro de los contenedores.
-*.sh  text eol=lf
+# El SQL siempre con saltos de línea LF.
 *.sql text eol=lf

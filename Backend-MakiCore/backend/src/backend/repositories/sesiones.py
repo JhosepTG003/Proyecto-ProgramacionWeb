@@ -34,8 +34,8 @@ class SesionRepository:
 
 
 if config.DATABASE_URL:
-    from backend.repositories.postgres import PgSesionRepository
+    from backend.repositories.sqlserver import SqlServerSesionRepository
 
-    sesion_repository = PgSesionRepository()
+    sesion_repository = SqlServerSesionRepository()
 else:
     sesion_repository = SesionRepository()

@@ -35,8 +35,8 @@ class PedidoRepository:
 
 
 if config.DATABASE_URL:
-    from backend.repositories.postgres import PgPedidoRepository
+    from backend.repositories.sqlserver import SqlServerPedidoRepository
 
-    pedido_repository = PgPedidoRepository()
+    pedido_repository = SqlServerPedidoRepository()
 else:
     pedido_repository = PedidoRepository()

@@ -1,9 +1,5 @@
 """Repositorios sobre SQL Server. Tienen los mismos metodos que los de memoria, asi que los
-services y las apis no cambian. Las tablas y vistas salen de database-MakiCore-sqlserver.sql.
-
-Se conserva el nombre del archivo y de las clases (Pg...) para no tocar el resto del backend,
-aunque ahora hablan con SQL Server.
-"""
+services y las apis no cambian. Las tablas y vistas salen de database-MakiCore-sqlserver.sql."""
 
 from __future__ import annotations
 
@@ -24,7 +20,7 @@ def _marcadores(cantidad: int) -> str:
 
 
 # ---------------------------------------------------------------- usuarios
-class PgUsuarioRepository:
+class SqlServerUsuarioRepository:
     _COLUMNAS = "id, correo, clave_hash, rol, artesano_id, nombre_publico"
 
     def list(self) -> list[Usuario]:
@@ -88,7 +84,7 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-class PgSesionRepository:
+class SqlServerSesionRepository:
     def add(self, token: str, usuario_id: int, vigencia_segundos: int) -> None:
         with conexion() as conn:
             conn.execute("DELETE FROM sesiones WHERE expira_en <= SYSDATETIMEOFFSET()")
@@ -114,7 +110,7 @@ class PgSesionRepository:
 
 
 # ------------------------------------------------------------------ fibras
-class PgFibraRepository:
+class SqlServerFibraRepository:
     def list(self) -> list[Fibra]:
         with conexion() as conn:
             filas = conn.execute("SELECT id, nombre FROM fibras ORDER BY id").fetchall()
@@ -137,7 +133,7 @@ class PgFibraRepository:
 
 
 # ----------------------------------------------------------------- prendas
-class PgPrendaRepository:
+class SqlServerPrendaRepository:
     # La vista v_catalogo ya une prendas + artesano (nombre publico) + fibra.
     # SQL Server no permite ORDER BY dentro de la vista: el orden va en cada consulta.
     _SELECT = (
@@ -214,7 +210,7 @@ class PgPrendaRepository:
 
 
 # ----------------------------------------------------------------- pedidos
-class PgPedidoRepository:
+class SqlServerPedidoRepository:
     _PEDIDO = (
         "SELECT id, comprador_id, estado, moneda, zona, subtotal, envio, total, "
         "plataforma, cooperativa, creado_en FROM pedidos"

@@ -7,7 +7,7 @@ Sigue la estructura del backend de ejemplo: `apis → services → repositories`
 
 ## Base de datos (SQL Server)
 
-El esquema está en `../../database-MakiCore/database-MakiCore.sql` (crea la base `maki`).
+El esquema está en `../../database-MakiCore/database-MakiCore-sqlserver.sql` (crea la base `maki`).
 
 1. En SSMS, conéctate a tu servidor, crea la base `maki` y ejecuta ese script.
 2. El nombre del servidor **cambia de una computadora a otra** (`.`, `.\SQLEXPRESS`, etc.). Para saber cuál es el tuyo, mira el README de la raíz, sección "Averiguar el nombre de tu servidor SQL".

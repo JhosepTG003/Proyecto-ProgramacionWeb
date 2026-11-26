@@ -54,8 +54,8 @@ class PrendaRepository:
 
 
 if config.DATABASE_URL:
-    from backend.repositories.postgres import PgPrendaRepository
+    from backend.repositories.sqlserver import SqlServerPrendaRepository
 
-    prenda_repository = PgPrendaRepository()
+    prenda_repository = SqlServerPrendaRepository()
 else:
     prenda_repository = PrendaRepository()

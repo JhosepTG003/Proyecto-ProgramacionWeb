@@ -25,8 +25,8 @@ class FibraRepository:
 
 
 if config.DATABASE_URL:
-    from backend.repositories.postgres import PgFibraRepository
+    from backend.repositories.sqlserver import SqlServerFibraRepository
 
-    fibra_repository = PgFibraRepository()
+    fibra_repository = SqlServerFibraRepository()
 else:
     fibra_repository = FibraRepository()

@@ -38,7 +38,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="Maki Core API",
     version="0.1.0",
-    description="Backend de la tienda de artesanías textiles (PostgreSQL si hay DATABASE_URL; si no, memoria).",
+    description="Backend de la tienda de artesanías textiles (SQL Server si hay DATABASE_URL; si no, memoria).",
     lifespan=lifespan,
 )
 

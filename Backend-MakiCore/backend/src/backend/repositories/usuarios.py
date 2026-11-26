@@ -42,8 +42,8 @@ class UsuarioRepository:
 
 
 if config.DATABASE_URL:
-    from backend.repositories.postgres import PgUsuarioRepository
+    from backend.repositories.sqlserver import SqlServerUsuarioRepository
 
-    usuario_repository = PgUsuarioRepository()
+    usuario_repository = SqlServerUsuarioRepository()
 else:
     usuario_repository = UsuarioRepository()

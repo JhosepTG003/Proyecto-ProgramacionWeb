@@ -46,7 +46,8 @@ CORS_ORIGINS = [
     if origen.strip()
 ]
 
-# Conexión a PostgreSQL, p. ej. postgresql://postgres:maki@localhost:5432/maki
+# Cadena de conexión ODBC a SQL Server, p. ej.
+# DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost\SQLEXPRESS;DATABASE=maki;Trusted_Connection=yes;TrustServerCertificate=yes;
 # Si está vacía, el servidor usa el almacenamiento en memoria (se pierde al reiniciar).
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 

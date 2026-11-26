@@ -43,7 +43,7 @@ npm install
 
 Si no quieres base de datos, sáltate este paso: el backend funcionará en memoria y todo se borrará al reiniciarlo.
 
-1. En SSMS, conéctate a tu servidor, crea la base `maki` y ejecuta `database-MakiCore/database-MakiCore.sql`.
+1. En SSMS, conéctate a tu servidor, crea la base `maki` y ejecuta `database-MakiCore/database-MakiCore-sqlserver.sql`.
 2. Comprueba que existan las tablas:
    ```sql
    USE maki;
