@@ -1,0 +1,2 @@
+# El SQL siempre con saltos de línea LF.
+*.sql text eol=lf

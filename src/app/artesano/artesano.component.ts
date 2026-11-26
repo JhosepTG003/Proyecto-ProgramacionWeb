@@ -1,8 +1,10 @@
 import { Component, inject, signal } from "@angular/core";
 import { FormField, form, required, validate } from "@angular/forms/signals";
+import { MAX_FOTO_BYTES, MAX_PRECIO_USD, MAX_STOCK, TIPOS_FOTO } from "../configuracion";
+import { usdACentavos } from "../dinero";
 import { TiendaService } from "../tienda.service";
 
-const FORMULARIO_VACIO = { nombre: "", fibra: "Alpaca", tinte: "", precio: 0 };
+const FORMULARIO_VACIO = { nombre: "", fibra: "Alpaca", tinte: "", precio: 0, stock: 1 };
 const OPCION_NUEVA = "__nueva__";
 
 @Component({
@@ -20,13 +22,59 @@ export class ArtesanoComponent {
   formulario = form(this.modelo, (c) => {
     required(c.nombre);
     required(c.tinte);
-    validate(c.precio, ({ value }) =>
-      value() > 0 ? null : { kind: "precio", message: "El precio debe ser mayor a 0." },
-    );
+    validate(c.precio, ({ value }) => {
+      const precio = value();
+      if (!(precio > 0)) return { kind: "precio", message: "El precio debe ser mayor a 0." };
+      if (precio > MAX_PRECIO_USD) {
+        return { kind: "precio", message: "El precio máximo es $" + MAX_PRECIO_USD + "." };
+      }
+      return null;
+    });
+    validate(c.stock, ({ value }) => {
+      const stock = value();
+      if (!Number.isInteger(stock) || stock < 1) {
+        return { kind: "stock", message: "El stock debe ser un número entero de 1 o más." };
+      }
+      if (stock > MAX_STOCK) {
+        return { kind: "stock", message: "El stock máximo es " + MAX_STOCK + "." };
+      }
+      return null;
+    });
   });
 
   mensaje = signal("");
   esError = signal(false);
+  guardando = signal(false); // evita enviar dos veces la misma prenda
+
+  // ---------- Fotografía (opcional) ----------
+  // Se guarda como data URL en memoria. Con backend se subiría a un servidor de archivos.
+  foto = signal("");
+  errorFoto = signal("");
+  readonly tiposFoto = TIPOS_FOTO.join(",");
+
+  elegirFoto(evento: Event) {
+    const campo = evento.target as HTMLInputElement;
+    const archivo = campo.files?.[0];
+    this.foto.set("");
+    this.errorFoto.set("");
+    if (!archivo) return;
+
+    if (!(TIPOS_FOTO as readonly string[]).includes(archivo.type)) {
+      this.errorFoto.set("Usa una imagen JPG, PNG o WebP.");
+      campo.value = "";
+      return;
+    }
+    if (archivo.size > MAX_FOTO_BYTES) {
+      this.errorFoto.set("La imagen pesa más de " + MAX_FOTO_BYTES / (1024 * 1024) + " MB.");
+      campo.value = "";
+      return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = () => this.foto.set(typeof lector.result === "string" ? lector.result : "");
+    lector.onerror = () => this.errorFoto.set("No se pudo leer la imagen.");
+    lector.readAsDataURL(archivo);
+  }
 
   // ---------- Nueva fibra ----------
   agregandoFibra = signal(false);
@@ -43,12 +91,12 @@ export class ArtesanoComponent {
     this.modelo.update((m) => ({ ...m, fibra: valor }));
   }
 
-  guardarFibra() {
+  async guardarFibra() {
     if (this.tienda.rol() !== "artesano") {
       this.errorFibra.set("Debes iniciar sesión como artesano.");
       return;
     }
-    const resultado = this.tienda.agregarFibra(this.fibraNueva());
+    const resultado = await this.tienda.agregarFibraRemota(this.fibraNueva());
     if (!resultado.ok) {
       this.errorFibra.set(resultado.mensaje);
       // Si ya existía, la dejamos seleccionada para ayudar al usuario.
@@ -73,7 +121,7 @@ export class ArtesanoComponent {
   }
 
   // ---------- Registro de prenda ----------
-  registrar() {
+  async registrar(campoFoto?: HTMLInputElement) {
     this.esError.set(true);
 
     if (this.tienda.rol() !== "artesano") {
@@ -85,6 +133,11 @@ export class ArtesanoComponent {
       return;
     }
 
+    if (this.errorFoto() !== "") {
+      this.mensaje.set("Corrige la fotografía o quítala para continuar.");
+      return;
+    }
+
     const datos = this.modelo();
     const nombre = datos.nombre.trim();
     const tinte = datos.tinte.trim();
@@ -93,17 +146,32 @@ export class ArtesanoComponent {
       return;
     }
 
-    // La prenda entra al catálogo (TiendaService.prendas) y se muestra de inmediato.
-    this.tienda.registrarPrenda({
-      nombre,
-      artesano: this.tienda.usuario(),
-      fibra: datos.fibra,
-      tinte,
-      precioUSD: datos.precio,
-    });
+    if (this.guardando()) return;
+    this.guardando.set(true);
+    try {
+      // El servidor guarda la prenda a nombre del artesano con sesión y le asigna el código MAKI-000N.
+      await this.tienda.crearPrenda({
+        nombre,
+        artesano: this.tienda.nombreArtesano(), // el servidor lo ignora y usa el de la sesión
+        artesanoId: this.tienda.idArtesano(),
+        fibra: datos.fibra,
+        tinte,
+        precioCentavosUSD: usdACentavos(datos.precio),
+        stock: datos.stock,
+        foto: this.foto() || undefined,
+      });
+    } catch (e) {
+      this.mensaje.set(e instanceof Error ? e.message : "No se pudo registrar la prenda.");
+      return;
+    } finally {
+      this.guardando.set(false);
+    }
 
     this.esError.set(false);
     this.mensaje.set("Prenda registrada correctamente. Ya aparece en el catálogo.");
     this.formulario().reset({ ...FORMULARIO_VACIO });
+    this.foto.set("");
+    this.errorFoto.set("");
+    if (campoFoto) campoFoto.value = "";
   }
 }

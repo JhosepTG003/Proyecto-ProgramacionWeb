@@ -2,13 +2,82 @@
 
 API REST (FastAPI + Uvicorn) de la tienda de artesanías textiles **Maki Core**.
 Sigue la estructura del backend de ejemplo: `apis → services → repositories`, con `schemas`
-(Pydantic) en los bordes y **almacenamiento en memoria** (se pierde al reiniciar).
+(Pydantic) en los bordes. Guarda en **SQL Server** si existe `DATABASE_URL`; si no, usa
+**memoria** (se pierde al reiniciar).
+
+## Base de datos (SQL Server)
+
+El esquema está en `../../database-MakiCore/database-MakiCore-sqlserver.sql` (crea la base `maki`).
+
+1. En SSMS, conéctate a tu servidor, crea la base `maki` y ejecuta ese script.
+2. El nombre del servidor **cambia de una computadora a otra** (`.`, `.\SQLEXPRESS`, etc.). Para saber cuál es el tuyo, mira el README de la raíz, sección "Averiguar el nombre de tu servidor SQL".
+3. Comprueba que existan las tablas:
+
+   ```sql
+   USE maki;
+   SELECT name FROM sys.tables;
+   ```
+
+4. Define la conexión en la **misma terminal** donde arrancas el backend (cada línea por separado):
+
+   ```powershell
+   $env:DATABASE_URL = "DRIVER={ODBC Driver 18 for SQL Server};
+   SERVER=localhost\SQLEXPRESS;
+   DATABASE=maki;
+   Trusted_Connection=yes;
+   TrustServerCertificate=yes;"
+   ```
+
+   ```powershell
+   uv run uvicorn backend.main:app --reload --port 8000
+   ```
+
+### Cadena de conexión: qué cambiar en otra máquina
+
+| Parte | Valor | ¿Cambiar? |
+|---|---|---|
+| `DRIVER` | `{ODBC Driver 18 for SQL Server}` | Solo si tienes otra versión instalada |
+| `SERVER` | `localhost\SQLEXPRESS` | **Sí.** Es el nombre de tu servidor SQL (ver abajo) |
+| `DATABASE` | `maki` | No |
+| `Trusted_Connection` | `yes` | Usa tu usuario de Windows, sin clave. Si tu servidor usa usuario y clave de SQL, cámbialo por `UID=usuario;PWD=clave;` |
+| `TrustServerCertificate` | `yes` | No |
+
+**Saber qué poner en `SERVER`:** es el mismo nombre que usas para conectarte en SSMS. Si no lo sabes:
+
+```powershell
+Get-Service | Where-Object { $_.Name -like "*SQL*" }
+```
+
+| Servicio en `Running` | Valor de `SERVER` |
+|---|---|
+| `MSSQLSERVER` | `localhost` |
+| `MSSQL$SQLEXPRESS` | `localhost\SQLEXPRESS` |
+| `MSSQL$OTRONOMBRE` | `localhost\OTRONOMBRE` |
+
+**Saber qué driver tienes instalado:**
+
+```powershell
+Get-OdbcDriver -Name "*SQL Server*"
+```
+
+Si no aparece `ODBC Driver 18 for SQL Server`, instálalo o cambia el nombre en `DRIVER` por el que aparezca (por ejemplo `ODBC Driver 17 for SQL Server`).
+
+Los datos de ejemplo se cargan solo si la base no tiene usuarios. Si necesitas empezar de cero, vacía las tablas antes de arrancar:
+
+```sql
+USE maki;
+DELETE FROM pedido_items; DELETE FROM pedidos; DELETE FROM sesiones;
+DELETE FROM prendas; DELETE FROM fibras;
+DELETE FROM usuarios; DELETE FROM artesanos;
+```
+
+Las pruebas (`uv run pytest`) corren en memoria; no necesitan base de datos. Los repositorios de SQL Server están en `repositories/` junto a los de memoria y tienen los mismos métodos.
 
 ## Cómo ejecutarlo
 
 Con **uv** (recomendado):
 
-```bash
+```powershell
 uv sync
 uv run uvicorn backend.main:app --reload --port 8000
 # o, equivalente:  uv run backend
@@ -16,9 +85,9 @@ uv run uvicorn backend.main:app --reload --port 8000
 
 Sin uv:
 
-```bash
+```powershell
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+.venv\Scripts\activate
 pip install -e .
 uvicorn backend.main:app --reload --port 8000
 ```
@@ -47,7 +116,7 @@ src/backend/
 ├── validators.py      Correo, fibra y foto
 ├── apis/              Routers: auth, prendas, fibras, pedidos, configuracion (+ dependencies)
 ├── services/          Reglas de negocio: auth, prendas, fibras, pedidos, dinero, exceptions
-├── repositories/      Almacenes en memoria: usuarios, sesiones, prendas, fibras, pedidos
+├── repositories/      Almacenes en memoria y en SQL Server: usuarios, sesiones, prendas, fibras, pedidos
 └── schemas/           Entradas/salidas: enums, usuarios, auth, prendas, fibras, pedidos, configuracion
 ```
 
@@ -86,19 +155,20 @@ Las rutas protegidas usan `Authorization: Bearer <token>`.
 - Fibras sin duplicados por mayúsculas/tildes; foto JPG/PNG/WebP ≤ 2 MB comprobando su contenido.
 - Correo con las mismas sugerencias de dominio (`gmial.com` → `gmail.com`).
 
-## Cambios necesarios en el frontend
+## Conexión con el frontend
 
-1. Reemplazar el estado local de `TiendaService` por `HttpClient` hacia `http://localhost:8000`
-   y un interceptor que agregue `Authorization: Bearer <token>`.
-2. **Login:** el rol se fija al registrarse y `/auth/login` lo devuelve; ya no se elige con el botón.
-3. El carrito sigue en el frontend; al pagar se envía `{ items: [{prenda_id, cantidad}], moneda, zona }`.
-4. Los montos llegan en centavos; el frontend solo les da formato.
+El frontend (`src/app/api.service.ts`) llama a esta API con `HttpClient`, y un interceptor
+(`auth.interceptor.ts`) agrega `Authorization: Bearer <token>`. El rol se fija al registrarse y
+`/auth/login` lo devuelve. El carrito sigue en el navegador; al pagar se envía
+`{ items: [{prenda_id, cantidad}], moneda, zona }`. Los montos llegan en centavos.
 
 ## Limitaciones
 
-- **Todo es en memoria:** al reiniciar se pierden usuarios, sesiones, prendas y pedidos
-  (los de ejemplo se vuelven a cargar). Para persistir, solo hay que reemplazar las clases de
-  `repositories/` por unas con base de datos: los services y las apis no cambian.
-- Funciona con **un solo proceso** (no uses varios `--workers`: cada uno tendría su propia memoria).
+- **Sin `DATABASE_URL` todo es en memoria:** al reiniciar se pierden usuarios, sesiones, prendas y
+  pedidos (los de ejemplo se vuelven a cargar).
+- Funciona con **un solo proceso** (no uses varios `--workers`): el candado de stock y de códigos
+  (`threading.Lock`) vive dentro del proceso. Pagar descuenta cada prenda y guarda el pedido en
+  transacciones separadas: si el servidor se cae justo en medio, el stock podría quedar descontado
+  sin pedido.
 - **El pago es simulado** (siempre se aprueba), como en el prototipo.
 - La tasa EUR es fija en `config.py`.

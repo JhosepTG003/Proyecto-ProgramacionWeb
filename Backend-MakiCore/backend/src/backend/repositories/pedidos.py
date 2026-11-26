@@ -1,3 +1,4 @@
+from backend import config
 from backend.schemas.pedidos import Pedido, PedidoItem
 
 
@@ -33,4 +34,9 @@ class PedidoRepository:
         return sorted(ventas, key=lambda par: par[0].id, reverse=True)
 
 
-pedido_repository = PedidoRepository()
+if config.DATABASE_URL:
+    from backend.repositories.sqlserver import SqlServerPedidoRepository
+
+    pedido_repository = SqlServerPedidoRepository()
+else:
+    pedido_repository = PedidoRepository()
