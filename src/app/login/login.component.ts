@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { FormField, form, minLength, required, validate } from "@angular/forms/signals";
+import { mensajeError } from "../api.service";
 import { Rol, TiendaService } from "../tienda.service";
 
 // Errores de tipeo frecuentes -> dominio correcto
@@ -102,18 +103,51 @@ export class LoginComponent {
     return campo.touched() && campo.errors().length === 0;
   });
 
-  entrar(rol: Rol) {
+  enviando = signal(false);
+
+  // true si el formulario está bien; si no, muestra el primer error.
+  private formularioValido(): boolean {
     this.formulario.correo().markAsTouched();
     this.formulario.clave().markAsTouched();
 
     if (this.formulario().invalid()) {
       this.esError.set(true);
       this.mensaje.set(this.formulario().errorSummary()[0]?.message ?? "Revisa los datos.");
-      return;
+      return false;
     }
-    this.tienda.iniciarSesion(this.modelo().correo.trim().toLowerCase(), rol);
-    this.esError.set(false);
-    this.mensaje.set("Sesión iniciada como " + rol + ".");
+    return true;
+  }
+
+  // El rol lo asigna el servidor según la cuenta: quien entra no lo elige.
+  async ingresar() {
+    if (this.enviando() || !this.formularioValido()) return;
+    await this.enviar(async () => {
+      const { correo, clave } = this.modelo();
+      await this.tienda.ingresar(correo.trim().toLowerCase(), clave);
+    });
+  }
+
+  // El rol se fija una sola vez, al crear la cuenta.
+  async crearCuenta(rol: Rol) {
+    if (this.enviando() || !this.formularioValido()) return;
+    await this.enviar(async () => {
+      const { correo, clave } = this.modelo();
+      await this.tienda.crearCuenta(correo.trim().toLowerCase(), clave, rol);
+    });
+  }
+
+  private async enviar(accion: () => Promise<void>) {
+    this.enviando.set(true);
+    try {
+      await accion();
+      this.esError.set(false);
+      this.mensaje.set("Sesión iniciada como " + this.tienda.rol() + ".");
+    } catch (e) {
+      this.esError.set(true);
+      this.mensaje.set(mensajeError(e));
+    } finally {
+      this.enviando.set(false);
+    }
   }
 
   salir() {

@@ -17,6 +17,9 @@ export class AppComponent {
   }
 
   constructor() {
+    // Recupera la sesión guardada y trae el catálogo del backend.
+    void this.tienda.iniciarApp();
+
     // Reacciona a los cambios de sesión (rol):
     //  - entra un artesano  -> lo lleva a su área
     //  - entra un comprador -> lo lleva al catálogo

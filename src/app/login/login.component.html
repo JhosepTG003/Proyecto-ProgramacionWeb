@@ -64,14 +64,34 @@
             </div>
           </div>
 
+          <div class="d-grid mb-3">
+            <button type="button" class="btn btn-primary" [disabled]="enviando()" (click)="ingresar()">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar
+            </button>
+          </div>
+
+          <p class="text-center text-muted small mb-2">¿No tienes cuenta? Créala como:</p>
           <div class="d-grid gap-2 d-sm-flex">
-            <button class="btn btn-primary w-100" (click)="entrar('comprador')">
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100"
+              [disabled]="enviando()"
+              (click)="crearCuenta('comprador')"
+            >
               <i class="bi bi-bag me-1"></i> Comprador
             </button>
-            <button class="btn btn-success w-100" (click)="entrar('artesano')">
+            <button
+              type="button"
+              class="btn btn-outline-success w-100"
+              [disabled]="enviando()"
+              (click)="crearCuenta('artesano')"
+            >
               <i class="bi bi-scissors me-1"></i> Artesano
             </button>
           </div>
+          <p class="text-muted small text-center mt-3 mb-0">
+            Cuentas de prueba (clave <code>maki123</code>): comprador&#64;maki.pe · taller.godino&#64;maki.pe
+          </p>
         }
 
         <div

@@ -44,6 +44,7 @@ export class ArtesanoComponent {
 
   mensaje = signal("");
   esError = signal(false);
+  guardando = signal(false); // evita enviar dos veces la misma prenda
 
   // ---------- Fotografía (opcional) ----------
   // Se guarda como data URL en memoria. Con backend se subiría a un servidor de archivos.
@@ -90,12 +91,12 @@ export class ArtesanoComponent {
     this.modelo.update((m) => ({ ...m, fibra: valor }));
   }
 
-  guardarFibra() {
+  async guardarFibra() {
     if (this.tienda.rol() !== "artesano") {
       this.errorFibra.set("Debes iniciar sesión como artesano.");
       return;
     }
-    const resultado = this.tienda.agregarFibra(this.fibraNueva());
+    const resultado = await this.tienda.agregarFibraRemota(this.fibraNueva());
     if (!resultado.ok) {
       this.errorFibra.set(resultado.mensaje);
       // Si ya existía, la dejamos seleccionada para ayudar al usuario.
@@ -120,7 +121,7 @@ export class ArtesanoComponent {
   }
 
   // ---------- Registro de prenda ----------
-  registrar(campoFoto?: HTMLInputElement) {
+  async registrar(campoFoto?: HTMLInputElement) {
     this.esError.set(true);
 
     if (this.tienda.rol() !== "artesano") {
@@ -145,17 +146,26 @@ export class ArtesanoComponent {
       return;
     }
 
-    // La prenda entra al catálogo (TiendaService.prendas) y se muestra de inmediato.
-    this.tienda.registrarPrenda({
-      nombre,
-      artesano: this.tienda.nombreArtesano(), // nombre público, no el correo
-      artesanoId: this.tienda.idArtesano(),
-      fibra: datos.fibra,
-      tinte,
-      precioCentavosUSD: usdACentavos(datos.precio),
-      stock: datos.stock,
-      foto: this.foto() || undefined,
-    });
+    if (this.guardando()) return;
+    this.guardando.set(true);
+    try {
+      // El servidor guarda la prenda a nombre del artesano con sesión y le asigna el código MAKI-000N.
+      await this.tienda.crearPrenda({
+        nombre,
+        artesano: this.tienda.nombreArtesano(), // el servidor lo ignora y usa el de la sesión
+        artesanoId: this.tienda.idArtesano(),
+        fibra: datos.fibra,
+        tinte,
+        precioCentavosUSD: usdACentavos(datos.precio),
+        stock: datos.stock,
+        foto: this.foto() || undefined,
+      });
+    } catch (e) {
+      this.mensaje.set(e instanceof Error ? e.message : "No se pudo registrar la prenda.");
+      return;
+    } finally {
+      this.guardando.set(false);
+    }
 
     this.esError.set(false);
     this.mensaje.set("Prenda registrada correctamente. Ya aparece en el catálogo.");

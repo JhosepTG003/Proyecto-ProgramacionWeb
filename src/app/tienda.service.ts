@@ -1,10 +1,13 @@
-import { Injectable, computed, signal } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
+import { Injectable, computed, inject, signal } from "@angular/core";
 import { form } from "@angular/forms/signals";
 import {
   MAX_CANTIDAD_POR_PRENDA,
   TARIFAS_ENVIO_CENTAVOS_USD,
 } from "./configuracion";
+import { ApiService, TokenApi, UsuarioApi, mensajeError } from "./api.service";
 import { convertir, dividirVenta } from "./dinero";
+import { SesionToken } from "./sesion-token";
 
 // ---------- Tipos ----------
 // Uniones de texto en vez de string suelto: si alguien escribe "Aprobdo" el compilador lo avisa.
@@ -38,6 +41,9 @@ export interface LineaCarrito {
 
 @Injectable({ providedIn: "root" })
 export class TiendaService {
+  private api = inject(ApiService);
+  private sesionToken = inject(SesionToken);
+
   // ---------- Sesión (RF002, RF003) ----------
   usuario = signal("");
   rol = signal<Rol | null>(null);
@@ -53,7 +59,12 @@ export class TiendaService {
 
   // Nombre público del artesano: es lo que ve el catálogo. NUNCA se usa el correo (dato privado).
   // Provisional: "Artesano ART-0003". Cuando exista un perfil con nombre del taller, sale de ahí.
-  nombreArtesano = computed(() => (this.idArtesano() === "" ? "" : "Artesano " + this.idArtesano()));
+  // Con backend, el nombre público lo entrega el servidor (nombrePublico).
+  nombrePublico = signal("");
+  nombreArtesano = computed(
+    () =>
+      this.nombrePublico() || (this.idArtesano() === "" ? "" : "Artesano " + this.idArtesano()),
+  );
 
   // ---------- Catálogo (RF004): lista viva de prendas ----------
   // Cuando un artesano registra una prenda se agrega aquí y el catálogo se actualiza solo.
@@ -217,7 +228,7 @@ export class TiendaService {
 
   // ---------- Nuevas fibras (artesano) ----------
   // Devuelve ok=true y la fibra normalizada (o la ya existente si estaba repetida).
-  agregarFibra(texto: string): { ok: boolean; mensaje: string; fibra: string } {
+  private validarFibra(texto: string): { ok: boolean; mensaje: string; fibra: string } {
     const limpio = texto.trim().replace(/\s+/g, " ");
     if (limpio.length < 3) {
       return { ok: false, mensaje: "Escribe al menos 3 letras.", fibra: "" };
@@ -241,8 +252,14 @@ export class TiendaService {
       return { ok: false, mensaje: "Esa fibra ya existe: \"" + existente + "\".", fibra: existente };
     }
 
-    this.fibras.update((lista) => [...lista, normalizada]);
     return { ok: true, mensaje: "", fibra: normalizada };
+  }
+
+  // Versión solo en memoria (la usan las pruebas). La app usa agregarFibraRemota().
+  agregarFibra(texto: string): { ok: boolean; mensaje: string; fibra: string } {
+    const resultado = this.validarFibra(texto);
+    if (resultado.ok) this.fibras.update((lista) => [...lista, resultado.fibra]);
+    return resultado;
   }
 
   // ---------- Registro de prendas (artesano) ----------
@@ -283,6 +300,12 @@ export class TiendaService {
   }
 
   cerrarSesion() {
+    const token = this.sesionToken.token();
+    if (token !== null) {
+      void this.api.logout(token).catch(() => undefined); // si falla, igual se cierra aquí
+      this.sesionToken.borrar();
+    }
+    this.nombrePublico.set("");
     this.idArtesano.set("");
     this.usuario.set("");
     this.rol.set(null);
@@ -320,6 +343,133 @@ export class TiendaService {
     this.mensajePedido.set(
       "Pago aprobado. Se notificó la venta al artesano y se ordenó la transferencia del 80 % a la cooperativa.",
     );
+  }
+
+  // =====================================================================================
+  // Conexión con el backend (FastAPI)
+  // iniciarSesion, registrarPrenda, agregarFibra y pagar (arriba) trabajan solo en memoria y se
+  // conservan para las pruebas unitarias. La aplicación usa los métodos de esta sección.
+  // =====================================================================================
+
+  private aplicarSesion(u: UsuarioApi) {
+    this.usuario.set(u.correo);
+    this.rol.set(u.rol);
+    this.idArtesano.set(u.artesano_id ?? "");
+    this.nombrePublico.set(u.nombre_publico ?? "");
+  }
+
+  // Si el servidor dice 401 con una sesión abierta, es que venció: se cierra aquí también.
+  private manejarError(e: unknown): string {
+    if (e instanceof HttpErrorResponse && e.status === 401 && this.sesionToken.token() !== null) {
+      this.cerrarSesion();
+      return "Tu sesión venció. Inicia sesión de nuevo.";
+    }
+    return mensajeError(e);
+  }
+
+  /** Al abrir la app: recupera la sesión guardada (si hay) y carga catálogo y fibras. */
+  async iniciarApp(): Promise<void> {
+    await this.restaurarSesion();
+    await this.cargarDatos();
+  }
+
+  async restaurarSesion(): Promise<void> {
+    if (this.sesionToken.token() === null) return;
+    try {
+      this.aplicarSesion(await this.api.me());
+    } catch (e) {
+      // Solo se descarta el token si el servidor lo rechazó; si no hay conexión se conserva.
+      if (e instanceof HttpErrorResponse && e.status === 401) this.sesionToken.borrar();
+    }
+  }
+
+  async cargarDatos(): Promise<void> {
+    try {
+      const [prendas, fibras] = await Promise.all([this.api.prendas(), this.api.fibras()]);
+      this.prendas.set(prendas);
+      this.fibras.set(fibras);
+    } catch (e) {
+      this.avisar(mensajeError(e));
+    }
+  }
+
+  // Los errores de login/registro se dejan subir: LoginComponent los muestra en su formulario.
+  async ingresar(correo: string, clave: string): Promise<void> {
+    await this.abrirSesion(await this.api.login(correo, clave));
+  }
+
+  async crearCuenta(correo: string, clave: string, rol: Rol): Promise<void> {
+    await this.abrirSesion(await this.api.registro(correo, clave, rol));
+  }
+
+  private async abrirSesion(respuesta: TokenApi): Promise<void> {
+    this.sesionToken.guardar(respuesta.access_token);
+    this.aplicarSesion(respuesta.usuario);
+    await this.cargarDatos();
+  }
+
+  /** Registra la prenda en el servidor (el artesano y el código MAKI-000N los pone él). */
+  async crearPrenda(datos: NuevaPrenda): Promise<Prenda> {
+    try {
+      const prenda = await this.api.crearPrenda({
+        nombre: datos.nombre,
+        fibra: datos.fibra,
+        tinte: datos.tinte,
+        precio_centavos_usd: datos.precioCentavosUSD,
+        stock: datos.stock,
+        foto: datos.foto ?? null,
+      });
+      if (!this.fibras().includes(prenda.fibra)) {
+        this.fibras.update((lista) => [...lista, prenda.fibra]);
+      }
+      this.prendas.update((lista) => [...lista, prenda]);
+      this.prendasRegistradas.update((n) => n + 1);
+      this.ultimaPrenda.set(prenda.nombre);
+      this.ultimoQR.set(prenda.id);
+      return prenda;
+    } catch (e) {
+      throw new Error(this.manejarError(e));
+    }
+  }
+
+  async agregarFibraRemota(texto: string): Promise<{ ok: boolean; mensaje: string; fibra: string }> {
+    const validada = this.validarFibra(texto); // mismos mensajes de siempre, sin ir al servidor
+    if (!validada.ok) return validada;
+    try {
+      const fibra = await this.api.crearFibra(validada.fibra);
+      this.fibras.update((lista) => (lista.includes(fibra) ? lista : [...lista, fibra]));
+      return { ok: true, mensaje: "", fibra };
+    } catch (e) {
+      return { ok: false, mensaje: this.manejarError(e), fibra: "" };
+    }
+  }
+
+  /** Paga en el servidor: él valida y descuenta el stock, calcula montos y guarda el pedido. */
+  async pagarEnServidor(): Promise<void> {
+    if (this.estadoPedido() === "Aprobado") {
+      this.mensajePedido.set("Este pedido ya fue pagado.");
+      return;
+    }
+    if (this.totalPrendas() === 0) {
+      this.mensajePedido.set("El carrito está vacío.");
+      return;
+    }
+    if (this.rol() !== "comprador") {
+      this.mensajePedido.set("Debes iniciar sesión como comprador para pagar.");
+      return;
+    }
+    try {
+      const pedido = await this.api.pagar({
+        items: this.lineas().map((l) => ({ prenda_id: l.prenda.id, cantidad: l.cantidad })),
+        moneda: this.moneda(),
+        zona: this.zona(),
+      });
+      this.estadoPedido.set("Aprobado");
+      this.mensajePedido.set(pedido.mensaje ?? "Pago aprobado.");
+      await this.cargarDatos(); // trae el stock ya descontado
+    } catch (e) {
+      this.mensajePedido.set(this.manejarError(e));
+    }
   }
 
   nuevoPedido() {

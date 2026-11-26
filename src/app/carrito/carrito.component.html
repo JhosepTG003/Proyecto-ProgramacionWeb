@@ -97,7 +97,7 @@
           type="button"
           class="btn btn-success btn-lg w-100"
           [disabled]="tienda.estadoPedido() === 'Aprobado'"
-          (click)="tienda.pagar()"
+          (click)="tienda.pagarEnServidor()"
         >
           <i class="bi bi-credit-card me-1"></i> Pagar ahora
         </button>
