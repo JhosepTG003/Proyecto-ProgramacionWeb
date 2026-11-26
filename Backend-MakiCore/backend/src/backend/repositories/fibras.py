@@ -1,3 +1,4 @@
+from backend import config
 from backend.schemas.fibras import Fibra
 from backend.validators import clave_fibra
 
@@ -23,4 +24,9 @@ class FibraRepository:
         return fibra
 
 
-fibra_repository = FibraRepository()
+if config.DATABASE_URL:
+    from backend.repositories.postgres import PgFibraRepository
+
+    fibra_repository = PgFibraRepository()
+else:
+    fibra_repository = FibraRepository()

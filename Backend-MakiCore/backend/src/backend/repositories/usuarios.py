@@ -1,3 +1,4 @@
+from backend import config
 from backend.schemas.usuarios import Usuario
 
 
@@ -40,4 +41,9 @@ class UsuarioRepository:
         return usuario
 
 
-usuario_repository = UsuarioRepository()
+if config.DATABASE_URL:
+    from backend.repositories.postgres import PgUsuarioRepository
+
+    usuario_repository = PgUsuarioRepository()
+else:
+    usuario_repository = UsuarioRepository()

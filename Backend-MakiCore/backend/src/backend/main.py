@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend import config
+from backend import config, db
 from backend.apis.auth import router as auth_router
 from backend.apis.configuracion import router as configuracion_router
 from backend.apis.fibras import router as fibras_router
@@ -31,12 +31,14 @@ async def lifespan(_: FastAPI):
     if config.SEED_DEMO_DATA:
         sembrar_datos_demo()
     yield
+    if config.DATABASE_URL:
+        db.cerrar_pool()
 
 
 app = FastAPI(
     title="Maki Core API",
     version="0.1.0",
-    description="Backend de la tienda de artesanías textiles, con almacenamiento en memoria.",
+    description="Backend de la tienda de artesanías textiles (PostgreSQL si hay DATABASE_URL; si no, memoria).",
     lifespan=lifespan,
 )
 

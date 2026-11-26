@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Collection
 
+from backend import config
 from backend.schemas.prendas import Prenda
 from backend.validators import clave_fibra
 
@@ -50,4 +53,9 @@ class PrendaRepository:
         return True
 
 
-prenda_repository = PrendaRepository()
+if config.DATABASE_URL:
+    from backend.repositories.postgres import PgPrendaRepository
+
+    prenda_repository = PgPrendaRepository()
+else:
+    prenda_repository = PrendaRepository()

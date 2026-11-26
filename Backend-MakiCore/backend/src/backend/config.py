@@ -46,6 +46,10 @@ CORS_ORIGINS = [
     if origen.strip()
 ]
 
+# Conexión a PostgreSQL, p. ej. postgresql://postgres:maki@localhost:5432/maki
+# Si está vacía, el servidor usa el almacenamiento en memoria (se pierde al reiniciar).
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
 # Minutos que dura una sesión iniciada.
 SESION_MINUTOS = int(os.getenv("SESION_MINUTOS", "60"))
 

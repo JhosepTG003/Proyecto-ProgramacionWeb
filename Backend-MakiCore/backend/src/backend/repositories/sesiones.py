@@ -1,5 +1,7 @@
 import time
 
+from backend import config
+
 
 class SesionRepository:
     """Sesiones iniciadas, en memoria: token -> (id de usuario, momento en que vence)."""
@@ -31,4 +33,9 @@ class SesionRepository:
             self._sesiones.pop(token, None)
 
 
-sesion_repository = SesionRepository()
+if config.DATABASE_URL:
+    from backend.repositories.postgres import PgSesionRepository
+
+    sesion_repository = PgSesionRepository()
+else:
+    sesion_repository = SesionRepository()
